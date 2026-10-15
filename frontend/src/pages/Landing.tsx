@@ -78,9 +78,19 @@ const Landing = () => {
           aria-hidden="true"
         />
         <div className="container relative z-10 text-center max-w-3xl mx-auto px-4">
-          <div className="inline-flex items-center gap-1.5 badge-accent mb-6 px-3 py-1">
-            <Zap size={13} className="text-[#2563EB]" />
-            <span>Civic Problem Priority Engine</span>
+          <div className="flex flex-col items-center justify-center mb-6">
+            <div className="relative mb-3 group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-violet-600 rounded-2xl blur-md opacity-30 group-hover:opacity-60 transition duration-500" />
+              <img
+                src="/logo-mark.png"
+                alt="CivicPulse AI Logo"
+                className="relative w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-2xl shadow-xl ring-2 ring-blue-500/30"
+              />
+            </div>
+            <div className="inline-flex items-center gap-1.5 badge-accent px-3 py-1">
+              <Zap size={13} className="text-[#2563EB]" />
+              <span>Civic Problem Priority Engine</span>
+            </div>
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#111111] mb-5 leading-tight">

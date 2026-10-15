@@ -9,11 +9,18 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-[#111111] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xs">CP</span>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo-mark.png"
+                alt="CivicPulse AI Logo"
+                className="w-8 h-8 object-contain rounded-lg ring-1 ring-blue-500/30"
+              />
+              <div className="flex flex-col leading-none">
+                <span className="font-bold text-base text-[#111111]">CivicPulse AI</span>
+                <span className="text-[10px] text-gray-400 font-medium tracking-wider uppercase mt-0.5">
+                  People Report • AI Acts • Cleaner Cities
+                </span>
               </div>
-              <span className="font-bold text-base text-[#111111]">CivicPulse AI</span>
             </div>
             <p className="text-xs text-gray-500 leading-relaxed max-w-xs">
               AI-powered civic issue reporting with multi-layer evidence verification and explainable priority scoring.

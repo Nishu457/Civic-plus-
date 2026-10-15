@@ -41,14 +41,15 @@ const Navbar = () => {
         {/* Logo */}
         <Link
           to="/"
-          className="flex items-center gap-2.5 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded-md p-1"
+          className="flex items-center gap-2.5 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded-lg p-1 group"
           aria-label="CivicPulse AI Home"
         >
-          <div className="w-8 h-8 bg-[#111111] rounded-lg flex items-center justify-center relative">
-            <span className="text-white font-bold text-xs tracking-wider">CP</span>
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#2563EB]" />
-          </div>
-          <span className="font-bold text-base tracking-tight text-[#111111]">
+          <img
+            src="/logo-mark.png"
+            alt="CivicPulse AI Logo"
+            className="w-9 h-9 object-contain rounded-lg ring-1 ring-blue-500/25 group-hover:ring-blue-500/60 shadow-sm transition-all duration-200"
+          />
+          <span className="font-bold text-base tracking-tight text-[#111111] flex items-center">
             CivicPulse
             <span className="text-xs font-semibold uppercase tracking-wider text-[#2563EB] ml-1.5 px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">
               AI

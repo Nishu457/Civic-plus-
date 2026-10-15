@@ -244,8 +244,12 @@ const Profile = () => {
             {/* Verified Credentials Banner */}
             <div className="card p-5 bg-gradient-to-r from-blue-50/80 via-white to-blue-50/30 border border-blue-200">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <ShieldCheck size={22} />
+                <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 shadow-sm ring-1 ring-blue-500/30 bg-[#111111]">
+                  <img
+                    src="/logo-mark.png"
+                    alt="CivicPulse Verified"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-black">

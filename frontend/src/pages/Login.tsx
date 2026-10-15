@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
-  Mail, ArrowRight, Loader2, RefreshCw, Shield, AlertCircle,
+  Mail, ArrowRight, Loader2, RefreshCw, AlertCircle,
   CheckCircle2, User, Phone, MapPin, Building, ShieldCheck, Check
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -252,12 +252,12 @@ const Login = () => {
 
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
-              {step === 'profile' ? (
-                <ShieldCheck size={28} className="text-[#2563EB]" />
-              ) : (
-                <Shield size={28} className="text-white" />
-              )}
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden shadow-md ring-2 ring-blue-500/30 bg-[#111111]">
+              <img
+                src="/logo-mark.png"
+                alt="CivicPulse AI Emblem"
+                className="w-full h-full object-cover"
+              />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-black mb-1.5">
               {isLoggedIn
