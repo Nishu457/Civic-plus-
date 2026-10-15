@@ -40,6 +40,23 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Friendly error messages for unconfigured or unreachable backends
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!error.response && error.message === 'Network Error') {
+      const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+      if (isVercel && !import.meta.env.VITE_API_BASE_URL) {
+        error.message =
+          'Backend is not connected. Add VITE_API_BASE_URL in Vercel Project Settings (Environment Variables) pointing to your Render backend URL, then redeploy.';
+      } else {
+        error.message = 'Backend API is currently unreachable. Please check if the server is running.';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ── System ────────────────────────────────────────────
 
 export const getHealth = () =>
