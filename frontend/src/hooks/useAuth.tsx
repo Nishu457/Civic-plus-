@@ -71,10 +71,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    const handleAuthChange = () => {
+      if (!checkDevAuth()) {
+        setUser(null);
+        setIsAdmin(false);
+      }
+    };
+    window.addEventListener('civicpulse_auth_change', handleAuthChange);
+
     // 1. Check if local dev session is active
-    if (checkDevAuth()) return;
+    if (checkDevAuth()) {
+      return () => {
+        window.removeEventListener('civicpulse_auth_change', handleAuthChange);
+      };
+    }
 
     // 2. If Supabase is configured, restore session and listen for auth state changes
+    let subscription: any = null;
     if (isSupabaseConfigured && supabase) {
       // Restore initial session
       supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
@@ -92,9 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       // Listen for real-time auth state events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      const { data } = supabase.auth.onAuthStateChange((_event, currentSession) => {
         setSession(currentSession);
         if (currentSession?.user) {
           setUser(mapSupabaseUser(currentSession.user));
@@ -110,28 +121,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         setLoading(false);
       });
-
-      const handleAuthChange = () => {
-        if (!checkDevAuth()) {
-          setUser(null);
-          setIsAdmin(false);
-        }
-      };
-      window.addEventListener('civicpulse_auth_change', handleAuthChange);
-
-      return () => {
-        subscription.unsubscribe();
-        window.removeEventListener('civicpulse_auth_change', handleAuthChange);
-      };
+      subscription = data.subscription;
     } else {
       // Supabase not configured: fallback to dev session check
       checkDevAuth();
       setLoading(false);
     }
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+      window.removeEventListener('civicpulse_auth_change', handleAuthChange);
+    };
   }, [checkDevAuth]);
 
   const loginAsDev = (role: 'citizen' | 'admin') => {
     setDevLogin(role);
+    const isAdm = role === 'admin';
+    setUser({
+      uid: isAdm ? 'dev-admin-uid' : 'dev-user-uid',
+      email: isAdm ? 'admin@civicpulse.ai' : 'demo@civicpulse.ai',
+      phoneNumber: '+91 98765 43210',
+      displayName: isAdm ? 'Demo Admin' : 'Demo Citizen',
+    });
+    setIsAdmin(isAdm);
+    setLoading(false);
   };
 
   const handleSignOut = async () => {
