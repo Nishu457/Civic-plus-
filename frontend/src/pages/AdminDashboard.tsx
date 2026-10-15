@@ -145,7 +145,7 @@ const AdminDashboard = () => {
               Sign In as Demo Admin
             </button>
             <Link to="/login" className="btn-secondary w-full no-underline block">
-              Sign In with Phone OTP
+              Sign In with Email OTP
             </Link>
           </div>
         </div>

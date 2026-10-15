@@ -1,4 +1,4 @@
-/* CivicPulse AI — Authentication Context */
+/* CivicPulse AI — Authentication Context (Supabase Email OTP + Dev Fallback) */
 
 import {
   createContext,
@@ -8,17 +8,19 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { getFirebaseAuth, getDevUser, setDevLogin, signOut as firebaseSignOut } from '../services/firebase';
+import { supabase, isSupabaseConfigured, signOutSupabase, type Session, type User as SupabaseUser } from '../services/supabase';
+import { getDevUser, setDevLogin, signOut as devSignOut } from '../services/firebase';
 
 export interface AppUser {
   uid: string;
+  email?: string | null;
   phoneNumber?: string | null;
   displayName?: string | null;
 }
 
 interface AuthContextType {
   user: AppUser | null;
+  session: Session | null;
   loading: boolean;
   isAdmin: boolean;
   loginAsDev: (role: 'citizen' | 'admin') => void;
@@ -27,6 +29,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   loading: true,
   isAdmin: false,
   loginAsDev: () => {},
@@ -37,6 +40,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -45,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (devUser) {
       setUser({
         uid: devUser.uid,
+        email: devUser.phoneNumber ? `${devUser.phoneNumber}@civicpulse.local` : 'demo@civicpulse.ai',
         phoneNumber: devUser.phoneNumber,
         displayName: devUser.displayName,
       });
@@ -55,47 +60,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   }, []);
 
+  const mapSupabaseUser = (sbUser: SupabaseUser | null): AppUser | null => {
+    if (!sbUser) return null;
+    return {
+      uid: sbUser.id,
+      email: sbUser.email,
+      phoneNumber: sbUser.phone || null,
+      displayName: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Citizen',
+    };
+  };
+
   useEffect(() => {
-    // Check if dev session exists
+    // 1. Check if local dev session is active
     if (checkDevAuth()) return;
 
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
+    // 2. If Supabase is configured, restore session and listen for auth state changes
+    if (isSupabaseConfigured && supabase) {
+      // Restore initial session
+      supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+        if (initialSession?.user) {
+          setSession(initialSession);
+          setUser(mapSupabaseUser(initialSession.user));
+          const role =
+            initialSession.user.app_metadata?.role ||
+            initialSession.user.user_metadata?.role;
+          setIsAdmin(role === 'admin');
+        } else {
+          checkDevAuth();
+        }
+        setLoading(false);
+      });
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          phoneNumber: firebaseUser.phoneNumber,
-          displayName: firebaseUser.displayName,
-        });
-        const token = await firebaseUser.getIdTokenResult();
-        setIsAdmin(token.claims.admin === true);
-      } else {
-        // If not in firebase, recheck dev auth
+      // Listen for real-time auth state events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+        setSession(currentSession);
+        if (currentSession?.user) {
+          setUser(mapSupabaseUser(currentSession.user));
+          const role =
+            currentSession.user.app_metadata?.role ||
+            currentSession.user.user_metadata?.role;
+          setIsAdmin(role === 'admin');
+        } else {
+          if (!checkDevAuth()) {
+            setUser(null);
+            setIsAdmin(false);
+          }
+        }
+        setLoading(false);
+      });
+
+      const handleAuthChange = () => {
         if (!checkDevAuth()) {
           setUser(null);
           setIsAdmin(false);
         }
-      }
+      };
+      window.addEventListener('civicpulse_auth_change', handleAuthChange);
+
+      return () => {
+        subscription.unsubscribe();
+        window.removeEventListener('civicpulse_auth_change', handleAuthChange);
+      };
+    } else {
+      // Supabase not configured: fallback to dev session check
+      checkDevAuth();
       setLoading(false);
-    });
-
-    const handleAuthChange = () => {
-      if (!checkDevAuth()) {
-        setUser(null);
-        setIsAdmin(false);
-      }
-    };
-    window.addEventListener('civicpulse_auth_change', handleAuthChange);
-
-    return () => {
-      unsubscribe();
-      window.removeEventListener('civicpulse_auth_change', handleAuthChange);
-    };
+    }
   }, [checkDevAuth]);
 
   const loginAsDev = (role: 'citizen' | 'admin') => {
@@ -103,13 +135,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const handleSignOut = async () => {
-    await firebaseSignOut();
+    if (isSupabaseConfigured) {
+      await signOutSupabase();
+    }
+    await devSignOut();
     setUser(null);
+    setSession(null);
     setIsAdmin(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, loginAsDev, signOut: handleSignOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        isAdmin,
+        loginAsDev,
+        signOut: handleSignOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

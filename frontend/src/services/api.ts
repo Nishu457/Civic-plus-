@@ -18,7 +18,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach auth token (dev token or Firebase token) to requests
+// Attach auth token (dev token, Supabase token, or Firebase token) to requests
 api.interceptors.request.use(async (config) => {
   const devToken = localStorage.getItem('civicpulse_dev_token');
   if (devToken) {
@@ -26,6 +26,19 @@ api.interceptors.request.use(async (config) => {
     return config;
   }
 
+  // 1. Try Supabase session token
+  try {
+    const { getSupabaseSession } = await import('./supabase');
+    const session = await getSupabaseSession();
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+      return config;
+    }
+  } catch (e) {
+    // Supabase auth not initialized
+  }
+
+  // 2. Try Firebase fallback if configured
   try {
     const { getFirebaseAuth } = await import('./firebase');
     const auth = getFirebaseAuth();

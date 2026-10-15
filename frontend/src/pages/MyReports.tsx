@@ -41,7 +41,7 @@ const MyReports = () => {
           </div>
           <h1 className="text-2xl font-bold mb-2">My Reports</h1>
           <p className="text-sm text-gray-500 mb-6">
-            Sign in with your phone number to track the status and updates of all civic issues you have reported.
+            Sign in with your email to track the status and updates of all civic issues you have reported.
           </p>
           <div className="space-y-3">
             <button
@@ -51,7 +51,7 @@ const MyReports = () => {
               Sign In as Demo Citizen
             </button>
             <Link to="/login" className="btn-secondary w-full no-underline block">
-              Sign In with Phone OTP
+              Sign In with Email OTP
             </Link>
           </div>
         </div>
@@ -66,7 +66,7 @@ const MyReports = () => {
           <div>
             <h1 className="text-2xl font-bold mb-1">My Reported Issues</h1>
             <p className="text-sm text-gray-500">
-              Logged in as {user.phoneNumber || user.displayName || user.uid}
+              Logged in as {user.email || user.phoneNumber || user.displayName || user.uid}
             </p>
           </div>
 

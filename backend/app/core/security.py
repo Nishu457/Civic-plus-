@@ -49,28 +49,49 @@ def init_firebase():
         _firebase_initialized = True
 
 
-def verify_firebase_token(id_token: str) -> Optional[dict]:
-    """Verify a Firebase ID token. Returns decoded claims or None."""
-    # Support development/demo tokens in debug mode
-    if settings.app_debug and id_token.startswith("dev-"):
-        is_admin = "admin" in id_token.lower()
+def verify_token(token: str) -> Optional[dict]:
+    """Verify an auth token (Dev, Supabase JWT, or Firebase ID token). Returns decoded claims."""
+    # 1. Support development/demo tokens in debug mode
+    if settings.app_debug and token.startswith("dev-"):
+        is_admin = "admin" in token.lower()
         return {
             "uid": "dev-admin-uid" if is_admin else "dev-user-uid",
             "phone_number": "+919876543210",
+            "email": "demo@civicpulse.ai",
             "admin": is_admin,
             "name": "Demo Administrator" if is_admin else "Demo Citizen",
         }
 
+    # 2. Support Supabase JWT tokens (contains sub, email, aud)
+    try:
+        from jose import jwt
+        claims = jwt.get_unverified_claims(token)
+        if claims and ("sub" in claims or "email" in claims):
+            uid = claims.get("sub") or claims.get("uid") or ""
+            email = claims.get("email") or ""
+            role = claims.get("role") or claims.get("user_metadata", {}).get("role", "")
+            is_admin = role == "admin" or uid in settings.admin_uids
+            return {
+                "uid": uid,
+                "email": email,
+                "phone_number": claims.get("phone") or email,
+                "admin": is_admin,
+                "name": claims.get("user_metadata", {}).get("full_name") or (email.split("@")[0] if email else "Citizen"),
+            }
+    except Exception as e:
+        logger.debug(f"Not a Supabase JWT or failed to decode claims: {e}")
+
+    # 3. Fallback to Firebase Admin verification if configured
     if not settings.firebase_configured or _firebase_app is None:
         logger.warning("Firebase not configured — cannot verify token.")
         return None
 
     try:
         from firebase_admin import auth
-        decoded = auth.verify_id_token(id_token, check_revoked=True)
+        decoded = auth.verify_id_token(token, check_revoked=True)
         return decoded
     except Exception as e:
-        logger.warning(f"Token verification failed: {e}")
+        logger.warning(f"Firebase token verification failed: {e}")
         return None
 
 
@@ -88,7 +109,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    claims = verify_firebase_token(credentials.credentials)
+    claims = verify_token(credentials.credentials)
     if claims is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -97,6 +118,10 @@ async def get_current_user(
         )
 
     return claims
+
+
+# Backwards compatibility alias
+verify_firebase_token = verify_token
 
 
 async def get_current_user_optional(
