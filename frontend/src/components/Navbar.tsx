@@ -1,7 +1,7 @@
 /* CivicPulse AI — Navigation Header */
 
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, User, Shield, FileText } from 'lucide-react';
+import { Menu, X, LogOut, User, Shield, FileText, UserCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -95,6 +95,22 @@ const Navbar = () => {
                 My Reports
               </Link>
 
+              <Link
+                to="/profile"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] ${
+                  isActive('/profile')
+                    ? 'text-[#2563EB] font-semibold bg-blue-50/70'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-[#111111]'
+                }`}
+                title="Citizen Profile & Verification"
+              >
+                <UserCheck size={16} className={user?.isVerified ? "text-[#2563EB]" : "text-gray-500"} />
+                <span>Profile</span>
+                {user?.isVerified && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Verified Citizen" />
+                )}
+              </Link>
+
               {isAdmin && (
                 <Link
                   to="/admin"
@@ -174,6 +190,24 @@ const Navbar = () => {
                     }`}
                   >
                     <FileText size={16} /> My Reports
+                  </Link>
+
+                  <Link
+                    to="/profile"
+                    className={`flex items-center justify-between gap-2 px-3.5 py-3 rounded-md text-sm font-medium min-h-[44px] no-underline ${
+                      isActive('/profile')
+                        ? 'text-[#2563EB] bg-blue-50/80 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <UserCheck size={16} className={user?.isVerified ? "text-[#2563EB]" : "text-gray-500"} /> Profile & Verification
+                    </span>
+                    {user?.isVerified && (
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Verified
+                      </span>
+                    )}
                   </Link>
 
                   {isAdmin && (

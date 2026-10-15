@@ -21,6 +21,7 @@ import MapView from './pages/MapView';
 import MyReports from './pages/MyReports';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
+import Profile from './pages/Profile';
 
 function App() {
   useEffect(() => {
@@ -53,6 +54,7 @@ function App() {
               <Route path="/my-reports" element={<MyReports />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

@@ -88,4 +88,30 @@ export async function getSupabaseSession(): Promise<Session | null> {
   return data.session;
 }
 
+/**
+ * Update the user profile and verification metadata in Supabase Auth.
+ */
+export async function updateSupabaseProfile(metadata: {
+  full_name?: string;
+  phone_number?: string;
+  city_district?: string;
+  citizen_type?: string;
+  is_verified?: boolean;
+  profile_completed?: boolean;
+}) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data, error } = await supabase.auth.updateUser({
+    data: metadata,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export type { Session, User };

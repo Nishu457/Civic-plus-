@@ -71,12 +71,15 @@ def verify_token(token: str) -> Optional[dict]:
             email = claims.get("email") or ""
             role = claims.get("role") or claims.get("user_metadata", {}).get("role", "")
             is_admin = role == "admin" or uid in settings.admin_uids
+            meta = claims.get("user_metadata") or {}
             return {
                 "uid": uid,
                 "email": email,
-                "phone_number": claims.get("phone") or email,
+                "phone_number": meta.get("phone_number") or claims.get("phone") or email,
                 "admin": is_admin,
-                "name": claims.get("user_metadata", {}).get("full_name") or (email.split("@")[0] if email else "Citizen"),
+                "name": meta.get("full_name") or (email.split("@")[0] if email else "Citizen"),
+                "city_district": meta.get("city_district", ""),
+                "is_verified": bool(meta.get("is_verified", False)),
             }
     except Exception as e:
         logger.debug(f"Not a Supabase JWT or failed to decode claims: {e}")
