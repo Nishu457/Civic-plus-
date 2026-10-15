@@ -1,0 +1,49 @@
+# CivicPulse AI — Backend Dependencies
+# Python 3.11+
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+
+# Data validation & settings
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# Database
+sqlalchemy==2.0.35
+aiosqlite==0.20.0
+
+# Image processing
+Pillow==10.4.0
+exifread==3.0.0
+imagehash==4.3.1
+
+# Google Gemini AI
+google-generativeai==0.8.2
+
+# Google Sheets
+gspread==6.1.2
+google-auth==2.35.0
+
+# Firebase Admin
+firebase-admin==6.5.0
+
+# Email (optional)
+resend==2.4.0
+
+# HTTP client
+httpx==0.27.2
+
+# Security & utilities
+python-jose[cryptography]==3.3.0
+passlib==1.7.4
+python-dotenv==1.0.1
+
+# Rate limiting
+slowapi==0.1.9
+
+# Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2
