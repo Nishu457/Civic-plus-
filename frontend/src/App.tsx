@@ -10,6 +10,7 @@ import { initFirebase } from './services/firebase';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import CursorParticleEffect from './components/CursorParticleEffect';
 
 // Pages
 import Landing from './pages/Landing';
@@ -39,7 +40,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col bg-white text-black selection:bg-black selection:text-white">
+        <div className="min-h-screen flex flex-col bg-white text-black selection:bg-black selection:text-white relative">
+          <CursorParticleEffect />
           <Navbar />
           <main className="flex-1">
             <Routes>

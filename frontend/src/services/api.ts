@@ -70,6 +70,34 @@ api.interceptors.response.use(
   }
 );
 
+// ── Image URL Resolution ─────────────────────────────
+
+/**
+ * Resolves an image URL safely against the backend API base URL.
+ * Handles relative /uploads/... paths, absolute URLs, and direct report image endpoints.
+ */
+export const resolveImageUrl = (imageUrl?: string | null, reportId?: string): string => {
+  if (!imageUrl && !reportId) return '';
+
+  if (imageUrl && (imageUrl.startsWith('data:') || imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+    return imageUrl;
+  }
+
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+  if (imageUrl) {
+    const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+    return baseUrl ? `${baseUrl}${cleanPath}` : cleanPath;
+  }
+
+  if (reportId) {
+    const path = `/api/v1/reports/${reportId}/image`;
+    return baseUrl ? `${baseUrl}${path}` : path;
+  }
+
+  return '';
+};
+
 // ── System ────────────────────────────────────────────
 
 export const getHealth = () =>

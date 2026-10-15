@@ -39,6 +39,7 @@ def _report_to_list_item(report: Report) -> ReportListItem:
         longitude=report.longitude,
         location_source=report.location_source,
         has_image=bool(report.image_filename),
+        image_url=f"/uploads/{report.image_filename}" if report.image_filename else None,
         evidence_risk=report.evidence_risk,
         priority_score=report.priority_score,
         priority_level=report.priority_level,

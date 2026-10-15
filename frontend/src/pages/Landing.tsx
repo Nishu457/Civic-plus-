@@ -14,16 +14,32 @@ import {
   Lock,
 } from 'lucide-react';
 import { CATEGORIES } from '../types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { listReports } from '../services/api';
 
 const Landing = () => {
+  const heroRef = useRef<HTMLElement | null>(null);
   const [stats, setStats] = useState<{
     total: number;
     categoriesCount: number;
     withImages: number;
     loaded: boolean;
   }>({ total: 0, categoriesCount: 0, withImages: 0, loaded: false });
+
+  const handleHeroPointerMove = (e: React.PointerEvent<HTMLElement>) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    heroRef.current.style.setProperty('--hero-x', `${x}px`);
+    heroRef.current.style.setProperty('--hero-y', `${y}px`);
+    heroRef.current.style.setProperty('--hero-opacity', '1');
+  };
+
+  const handleHeroPointerLeave = () => {
+    if (!heroRef.current) return;
+    heroRef.current.style.setProperty('--hero-opacity', '0');
+  };
 
   useEffect(() => {
     listReports({ page: 1, page_size: 50 })
@@ -45,8 +61,23 @@ const Landing = () => {
   return (
     <div className="fade-in">
       {/* ── Hero ──────────────────────────────────────── */}
-      <section className="py-16 sm:py-24 lg:py-28 border-b border-gray-100">
-        <div className="container text-center max-w-3xl mx-auto px-4">
+      <section
+        ref={heroRef}
+        onPointerMove={handleHeroPointerMove}
+        onPointerLeave={handleHeroPointerLeave}
+        className="relative py-16 sm:py-24 lg:py-28 border-b border-gray-100 overflow-hidden"
+      >
+        {/* Subtle cursor-following radial glow */}
+        <div
+          className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+          style={{
+            opacity: 'var(--hero-opacity, 0)',
+            background:
+              'radial-gradient(550px circle at var(--hero-x, 50%) var(--hero-y, 50%), rgba(37, 99, 235, 0.08), rgba(34, 211, 238, 0.04) 40%, transparent 70%)',
+          }}
+          aria-hidden="true"
+        />
+        <div className="container relative z-10 text-center max-w-3xl mx-auto px-4">
           <div className="inline-flex items-center gap-1.5 badge-accent mb-6 px-3 py-1">
             <Zap size={13} className="text-[#2563EB]" />
             <span>Civic Problem Priority Engine</span>

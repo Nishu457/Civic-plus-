@@ -45,6 +45,7 @@ export interface ReportListItem {
   longitude?: number;
   location_source: string;
   has_image: boolean;
+  image_url?: string;
   evidence_risk: string;
   priority_score?: number;
   priority_level?: string;

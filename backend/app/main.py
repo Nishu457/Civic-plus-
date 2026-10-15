@@ -118,10 +118,7 @@ app.include_router(health_router)
 app.include_router(reports_router)
 app.include_router(admin_router)
 
-# ── Serve uploaded images (development only) ─────────────────
-# In production, use a proper CDN/object storage
-if settings.app_debug:
-    import os
-    upload_path = settings.upload_path
-    if upload_path.exists():
-        app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
+# ── Serve uploaded images ────────────────────────────────────
+upload_path = settings.upload_path
+upload_path.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")

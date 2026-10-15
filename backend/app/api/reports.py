@@ -82,6 +82,7 @@ def _report_to_list_item(report: Report) -> ReportListItem:
         longitude=report.longitude,
         location_source=report.location_source,
         has_image=bool(report.image_filename),
+        image_url=f"/uploads/{report.image_filename}" if report.image_filename else None,
         evidence_risk=report.evidence_risk,
         priority_score=report.priority_score,
         priority_level=report.priority_level,
@@ -354,4 +355,38 @@ async def get_evidence_assessment(report_id: str, db: Session = Depends(get_db))
         location_distance_m=check.location_distance_m,
         perceptual_hash=check.perceptual_hash,
         duplicate_of_report_id=check.duplicate_of_report_id,
+    )
+
+
+@router.get("/reports/{report_id}/image")
+async def get_report_image(report_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve the uploaded image for a report with correct content-type, cache headers, and CORS.
+    """
+    import mimetypes
+    from fastapi.responses import FileResponse
+
+    report = db.query(Report).filter(Report.report_id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    if not report.image_filename:
+        raise HTTPException(status_code=404, detail="This report has no attached image.")
+
+    file_path = settings.upload_path / report.image_filename
+    if not file_path.is_file():
+        logger.warning(f"Image file missing on disk: {file_path} for report {report_id}")
+        raise HTTPException(status_code=404, detail="Image file not found in storage.")
+
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    if not mime_type:
+        ext = file_path.suffix.lower().lstrip(".")
+        mime_type = f"image/{ext}" if ext in ("jpeg", "jpg", "png", "webp") else "application/octet-stream"
+
+    return FileResponse(
+        path=str(file_path),
+        media_type=mime_type,
+        headers={
+            "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+            "Access-Control-Allow-Origin": "*",
+        },
     )

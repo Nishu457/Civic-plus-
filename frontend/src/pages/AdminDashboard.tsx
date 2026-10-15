@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   RefreshCw, Search, ChevronLeft, ChevronRight, X,
-  ArrowUpDown, FileSpreadsheet, Lock
+  ArrowUpDown, FileSpreadsheet, Lock, Camera, Eye, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -13,6 +13,7 @@ import {
   updateReportStatus,
   triggerSync,
   getAuditLog,
+  resolveImageUrl,
 } from '../services/api';
 import type { DashboardStats, ReportListItem, ReportListResponse } from '../types';
 import { CATEGORIES, STATUS_LABELS } from '../types';
@@ -41,6 +42,9 @@ const AdminDashboard = () => {
   const [updateReason, setUpdateReason] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState('');
+
+  // Lightbox Preview State
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; id: string } | null>(null);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'triage' | 'audit'>('triage');
@@ -335,11 +339,45 @@ const AdminDashboard = () => {
                       </span>
                     </div>
 
-                    <div>
-                      <Link to={`/report/${report.report_id}`} className="font-bold text-base text-black hover:text-[#2563EB] no-underline block">
-                        {report.title}
-                      </Link>
-                      <div className="text-xs text-gray-500 mt-0.5">{report.category_label}</div>
+                    <div className="flex gap-3 items-start">
+                      {report.has_image && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewImage({
+                              url: resolveImageUrl(report.image_url, report.report_id),
+                              title: report.title,
+                              id: report.report_id,
+                            })
+                          }
+                          className="shrink-0 p-0 border-0 bg-transparent cursor-pointer rounded-lg overflow-hidden group relative"
+                          title="Click to view photo evidence"
+                        >
+                          <img
+                            src={resolveImageUrl(report.image_url, report.report_id)}
+                            alt={report.title}
+                            className="w-14 h-14 rounded-lg object-cover border border-gray-200 bg-gray-50 shadow-xs"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              const fallback = resolveImageUrl(null, report.report_id);
+                              if (target.src !== fallback && fallback) {
+                                target.src = fallback;
+                              } else {
+                                target.style.display = 'none';
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white rounded-lg">
+                            <Eye size={16} />
+                          </div>
+                        </button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/report/${report.report_id}`} className="font-bold text-base text-black hover:text-[#2563EB] no-underline block truncate">
+                          {report.title}
+                        </Link>
+                        <div className="text-xs text-gray-500 mt-0.5">{report.category_label}</div>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100">
@@ -379,6 +417,7 @@ const AdminDashboard = () => {
                   <thead className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase">
                     <tr>
                       <th className="py-3 px-4 font-semibold">Report ID</th>
+                      <th className="py-3 px-4 font-semibold">Photo</th>
                       <th className="py-3 px-4 font-semibold">Title & Category</th>
                       <th className="py-3 px-4 font-semibold">Severity</th>
                       <th className="py-3 px-4 font-semibold">Evidence Risk</th>
@@ -401,14 +440,14 @@ const AdminDashboard = () => {
                     {loading ? (
                       [...Array(6)].map((_, i) => (
                         <tr key={i}>
-                          <td colSpan={7} className="py-4 px-4">
+                          <td colSpan={8} className="py-4 px-4">
                             <div className="skeleton h-4 w-full" />
                           </td>
                         </tr>
                       ))
                     ) : reports && reports.reports.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-gray-500">
+                        <td colSpan={8} className="py-12 text-center text-gray-500">
                           No reports match the selected filters.
                         </td>
                       </tr>
@@ -419,6 +458,49 @@ const AdminDashboard = () => {
                             <Link to={`/report/${report.report_id}`} className="hover:underline text-black">
                               {report.report_id}
                             </Link>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {report.has_image ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewImage({
+                                    url: resolveImageUrl(report.image_url, report.report_id),
+                                    title: report.title,
+                                    id: report.report_id,
+                                  })
+                                }
+                                className="relative group p-0 border-0 bg-transparent cursor-pointer block rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                                title="Click to view full photo evidence"
+                              >
+                                <img
+                                  src={resolveImageUrl(report.image_url, report.report_id)}
+                                  alt={report.title}
+                                  className="w-11 h-11 rounded-lg object-cover border border-gray-200 bg-gray-50 group-hover:opacity-90 group-hover:scale-105 transition-all shadow-xs"
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    const fallback = resolveImageUrl(null, report.report_id);
+                                    if (target.src !== fallback && fallback) {
+                                      target.src = fallback;
+                                    } else {
+                                      target.style.display = 'none';
+                                      target.nextElementSibling?.classList.remove('hidden');
+                                    }
+                                  }}
+                                />
+                                <div className="hidden w-11 h-11 rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-400 text-[10px] text-center p-1 font-medium">
+                                  No img
+                                </div>
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white rounded-lg">
+                                  <Eye size={14} />
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="w-11 h-11 rounded-lg border border-dashed border-gray-200 bg-gray-50/70 flex flex-col items-center justify-center text-gray-300">
+                                <Camera size={14} />
+                                <span className="text-[9px] mt-0.5 text-gray-400">None</span>
+                              </div>
+                            )}
                           </td>
                           <td className="py-3.5 px-4 max-w-xs">
                             <div className="font-semibold truncate">{report.title}</div>
@@ -558,6 +640,43 @@ const AdminDashboard = () => {
                 <div>Title: <strong className="text-black">{selectedReport.title}</strong></div>
               </div>
 
+              {selectedReport.has_image && (
+                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2">
+                  <div className="text-xs font-semibold text-gray-600 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Eye size={14} className="text-[#2563EB]" /> Attached Photo Evidence
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewImage({
+                          url: resolveImageUrl(selectedReport.image_url, selectedReport.report_id),
+                          title: selectedReport.title,
+                          id: selectedReport.report_id,
+                        })
+                      }
+                      className="text-[#2563EB] text-xs font-medium hover:underline inline-flex items-center gap-1 border-0 bg-transparent cursor-pointer p-0"
+                    >
+                      Enlarge <ExternalLink size={12} />
+                    </button>
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-gray-200 bg-white max-h-48 flex items-center justify-center">
+                    <img
+                      src={resolveImageUrl(selectedReport.image_url, selectedReport.report_id)}
+                      alt={selectedReport.title}
+                      className="max-h-48 w-full object-contain"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallback = resolveImageUrl(null, selectedReport.report_id);
+                        if (target.src !== fallback && fallback) {
+                          target.src = fallback;
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="label">Target Status</label>
                 <select
@@ -615,6 +734,57 @@ const AdminDashboard = () => {
                 >
                   {updating ? 'Saving...' : 'Confirm Update'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lightbox Photo Preview Modal */}
+        {previewImage && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 fade-in"
+            onClick={() => setPreviewImage(null)}
+          >
+            <div
+              className="relative max-w-3xl w-full bg-white rounded-xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+                <div className="min-w-0 pr-4">
+                  <span className="badge badge-black text-xs font-mono mb-1">{previewImage.id}</span>
+                  <h3 className="font-bold text-sm sm:text-base text-black truncate">{previewImage.title}</h3>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={previewImage.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary btn-sm text-xs flex items-center gap-1 no-underline"
+                  >
+                    Open Tab <ExternalLink size={12} />
+                  </a>
+                  <button
+                    onClick={() => setPreviewImage(null)}
+                    className="p-1.5 text-gray-400 hover:text-black rounded-lg border-0 bg-transparent cursor-pointer"
+                    aria-label="Close preview"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 bg-gray-950 flex items-center justify-center min-h-[300px] max-h-[75vh]">
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.title}
+                  className="max-h-[70vh] max-w-full object-contain rounded-md"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const fallback = resolveImageUrl(null, previewImage.id);
+                    if (target.src !== fallback && fallback) {
+                      target.src = fallback;
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>

@@ -165,3 +165,62 @@ def test_admin_dashboard_and_status_update():
     fetch_resp = client.get(f"/api/v1/reports/{rep_id}")
     assert fetch_resp.json()["status"] == "in_progress"
     assert fetch_resp.json()["assigned_authority"] == "Vijayawada Municipal Corporation"
+
+
+def test_image_upload_and_admin_retrieval():
+    """Verify uploaded image handling, admin image_url field, and retrieval endpoints."""
+    import io
+    from PIL import Image
+
+    headers = {"Authorization": "Bearer dev-admin-token"}
+
+    # Generate a valid tiny JPEG image
+    img = Image.new("RGB", (100, 100), color=(255, 0, 0))
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="JPEG")
+    img_bytes = img_byte_arr.getvalue()
+
+    # Submit report with image
+    resp = client.post(
+        "/api/v1/reports",
+        data={
+            "category": "pothole_damaged_road",
+            "title": "Road crater with photo",
+            "observed_severity": "high",
+            "location_source": "manual",
+            "submission_consent": "true",
+        },
+        files={"image": ("test_road.jpg", img_bytes, "image/jpeg")},
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["has_image"] is True
+    assert data["image_url"] is not None
+    rep_id = data["report_id"]
+
+    # Verify admin list returns image_url
+    admin_list = client.get(f"/api/v1/admin/reports?search={rep_id}", headers=headers)
+    assert admin_list.status_code == 200
+    admin_items = admin_list.json()["reports"]
+    assert len(admin_items) >= 1
+    target = next((r for r in admin_items if r["report_id"] == rep_id), None)
+    assert target is not None
+    assert target["has_image"] is True
+    assert target["image_url"] is not None
+    assert target["image_url"].startswith("/uploads/")
+
+    # Verify dedicated image retrieval endpoint
+    img_resp = client.get(f"/api/v1/reports/{rep_id}/image")
+    assert img_resp.status_code == 200
+    assert "image/jpeg" in img_resp.headers["content-type"]
+    assert len(img_resp.content) > 0
+
+    # Verify static /uploads endpoint
+    uploads_url = target["image_url"]
+    static_resp = client.get(uploads_url)
+    assert static_resp.status_code == 200
+    assert "image/jpeg" in static_resp.headers["content-type"]
+
+    # Verify 404 for non-existent image
+    missing_resp = client.get("/api/v1/reports/NON-EXISTENT-ID/image")
+    assert missing_resp.status_code == 404

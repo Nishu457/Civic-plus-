@@ -7,7 +7,7 @@ import {
   Copy, Check, Eye, Brain, FileCheck, Info,
   ExternalLink, Building2
 } from 'lucide-react';
-import { getReport, getReportTimeline, getEvidenceAssessment } from '../services/api';
+import { getReport, getReportTimeline, getEvidenceAssessment, resolveImageUrl } from '../services/api';
 import type { Report, TimelineResponse, EvidenceAssessment } from '../types';
 import { STATUS_LABELS } from '../types';
 
@@ -23,6 +23,7 @@ const ReportDetail = () => {
     return Math.floor(Math.random() * 5) + 1;
   });
   const [hasConfirmed, setHasConfirmed] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -207,26 +208,55 @@ const ReportDetail = () => {
                 </span>
               </div>
 
-              {report.has_image && report.image_url ? (
+              {report.has_image ? (
                 <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 max-h-[450px] flex items-center justify-center">
-                    <img
-                      src={report.image_url}
-                      alt={report.title}
-                      className="w-full h-full object-contain max-h-[450px]"
-                    />
-                  </div>
-                  <div className="text-xs text-gray-400 flex items-center justify-between px-1">
-                    <span>Cleaned public preview (EXIF stripped for privacy)</span>
-                    <a
-                      href={report.image_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#2563EB] font-medium hover:underline inline-flex items-center gap-1"
-                    >
-                      View Full Size <ExternalLink size={12} />
-                    </a>
-                  </div>
+                  {!imageLoadFailed ? (
+                    <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 max-h-[450px] flex items-center justify-center">
+                      <img
+                        src={resolveImageUrl(report.image_url, report.report_id)}
+                        alt={report.title}
+                        className="w-full h-full object-contain max-h-[450px]"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          const fallback = resolveImageUrl(null, report.report_id);
+                          if (target.src !== fallback && fallback) {
+                            target.src = fallback;
+                          } else {
+                            setImageLoadFailed(true);
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center text-gray-500">
+                      <Eye size={32} className="mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm font-medium">Photo evidence uploaded with report.</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Securely verified and archived with report #{report.report_id}.
+                      </p>
+                      <a
+                        href={resolveImageUrl(report.image_url, report.report_id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary btn-sm mt-3 inline-flex items-center gap-1.5 no-underline"
+                      >
+                        Open Direct Photo Link <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
+                  {!imageLoadFailed && (
+                    <div className="text-xs text-gray-400 flex items-center justify-between px-1">
+                      <span>Cleaned public preview (EXIF stripped for privacy)</span>
+                      <a
+                        href={resolveImageUrl(report.image_url, report.report_id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#2563EB] font-medium hover:underline inline-flex items-center gap-1"
+                      >
+                        View Full Size <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-8 text-center text-gray-400">

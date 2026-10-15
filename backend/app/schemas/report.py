@@ -149,6 +149,7 @@ class ReportListItem(BaseModel):
     longitude: Optional[float] = None
     location_source: str = "unknown"
     has_image: bool = False
+    image_url: Optional[str] = None
     evidence_risk: str = "inconclusive"
     priority_score: Optional[int] = None
     priority_level: Optional[str] = None
