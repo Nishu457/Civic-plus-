@@ -1,0 +1,12 @@
+{
+  "name": "civicpulse-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CivicPulse AI — Root Workspace Runner",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "frontend": "npm --prefix frontend run dev",
+    "backend": "powershell -Command \"cd backend; .\\.venv\\Scripts\\uvicorn app.main:app --reload --port 8000\""
+  }
+}
