@@ -136,7 +136,7 @@ export interface ImageVerificationResult {
   evidence: string;
   reason: string;
   user_message: string;
-  verification_status: 'accepted' | 'unclear' | 'rejected_irrelevant' | 'error' | 'corrupted';
+  verification_status: 'accepted' | 'unclear' | 'rejected_irrelevant' | 'error' | 'corrupted' | 'service_unavailable';
   can_submit: boolean;
   image_sha256: string;
   verification_token: string;

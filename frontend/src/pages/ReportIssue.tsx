@@ -136,7 +136,7 @@ const ReportIssue = () => {
         updateField('verification_token', undefined);
       }
     } catch (err: any) {
-      const detail = err?.response?.data?.detail || err.message || 'Image verification is temporarily unavailable. Please try again.';
+      const detail = err?.response?.data?.detail || err.message || 'Image verification is temporarily unavailable.';
       setVerificationResult({
         is_municipal_issue: false,
         issue_category: 'unknown',
@@ -147,9 +147,9 @@ const ReportIssue = () => {
         severity: 'unknown',
         evidence: '',
         reason: detail,
-        user_message: 'Image verification is temporarily unavailable. Please try again.',
-        verification_status: 'error',
-        can_submit: false,
+        user_message: 'AI image verification is temporarily unavailable. You may still submit your report, but it will be flagged for manual review.',
+        verification_status: 'service_unavailable',
+        can_submit: true,
         image_sha256: '',
         verification_token: '',
         verified_at: new Date().toISOString(),
@@ -169,19 +169,22 @@ const ReportIssue = () => {
     updateField('location_consent', true);
   };
 
+  // Check if image passed verification OR AI was unavailable (graceful degradation)
+  const isVerificationPassOrUnavailable = verificationResult?.can_submit === true;
+
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 0:
         return !!formData.category;
       case 1:
-        // Evidence stage: Requires image AND successful AI verification
-        return !!formData.image && verificationResult?.can_submit === true;
+        // Evidence stage: Requires image AND either successful AI verification or AI service unavailable
+        return !!formData.image && isVerificationPassOrUnavailable;
       case 2:
         return true; // Location optional (GPS or manual)
       case 3:
         return formData.title.length >= 5;
       case 4:
-        return formData.submission_consent && verificationResult?.can_submit === true;
+        return formData.submission_consent && isVerificationPassOrUnavailable;
       default:
         return false;
     }
@@ -615,8 +618,7 @@ const ReportIssue = () => {
                     )}
 
                     {/* ── Status: Service Error / Timeout ───────── */}
-                    {(verificationResult.verification_status === 'error' ||
-                      verificationResult.verification_status === 'corrupted') && (
+                    {verificationResult.verification_status === 'corrupted' && (
                       <div className="card p-5 border-2 border-red-400 bg-red-50 space-y-4">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-sm">
@@ -645,6 +647,50 @@ const ReportIssue = () => {
                           <button
                             onClick={handleVerifyImage}
                             className="btn-primary btn-sm flex-1 justify-center gap-1.5"
+                          >
+                            <RefreshCw size={13} />
+                            Retry Verification
+                          </button>
+                          <button
+                            onClick={removeImage}
+                            className="btn-secondary btn-sm flex-1 justify-center"
+                          >
+                            Upload Another Photo
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Status: AI Service Unavailable (graceful degradation) ── */}
+                    {(verificationResult.verification_status === 'service_unavailable' ||
+                      verificationResult.verification_status === 'error') && (
+                      <div className="card p-5 border-2 border-amber-400 bg-amber-50/80 space-y-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                            <AlertTriangle size={22} />
+                          </div>
+                          <div className="flex-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white mb-1.5">
+                              Verification Unavailable
+                            </span>
+                            <h4 className="font-bold text-sm text-amber-950">
+                              {verificationResult.user_message}
+                            </h4>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/80 rounded-lg p-3 text-xs text-amber-900 border border-amber-200 space-y-1.5">
+                          <p className="font-semibold">⚠ Your report will NOT be marked as AI‑verified.</p>
+                          <p>
+                            AI verification is temporarily offline. You can still submit your report —
+                            it will be queued for manual review by municipal staff.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <button
+                            onClick={handleVerifyImage}
+                            className="btn-secondary btn-sm flex-1 justify-center gap-1.5"
                           >
                             <RefreshCw size={13} />
                             Retry Verification
@@ -880,17 +926,26 @@ const ReportIssue = () => {
               {/* Verified Image Section */}
               {imagePreview && (
                 <div>
-                  <span className="text-gray-400 text-xs">Verified Evidence Photo</span>
+                  <span className="text-gray-400 text-xs">
+                    {verificationResult?.verification_status === 'accepted' ? 'Verified Evidence Photo' : 'Evidence Photo (Unverified)'}
+                  </span>
                   <div className="relative mt-2">
                     <img
                       src={imagePreview}
-                      alt="Verified Evidence"
+                      alt="Evidence"
                       className="w-full max-h-48 object-contain rounded-lg border border-gray-200"
                     />
                     {verificationResult?.verification_status === 'accepted' && (
                       <div className="absolute bottom-2 left-2 bg-emerald-600 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md flex items-center gap-1 shadow">
                         <ShieldCheck size={13} />
                         AI Verified ({Math.round(verificationResult.confidence * 100)}%)
+                      </div>
+                    )}
+                    {(verificationResult?.verification_status === 'service_unavailable' ||
+                      verificationResult?.verification_status === 'error') && (
+                      <div className="absolute bottom-2 left-2 bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md flex items-center gap-1 shadow">
+                        <AlertTriangle size={13} />
+                        Not AI‑Verified — Manual Review Required
                       </div>
                     )}
                   </div>
@@ -951,6 +1006,20 @@ const ReportIssue = () => {
                 <AlertTriangle size={16} className="text-red-600 shrink-0" />
                 {submitError}
               </p>
+            )}
+
+            {(verificationResult?.verification_status === 'service_unavailable' ||
+              verificationResult?.verification_status === 'error') && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 flex items-start gap-3">
+                <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-amber-900">AI verification was unavailable</p>
+                  <p className="text-amber-800 mt-0.5">
+                    Your report will be submitted without AI image verification and will be flagged for manual review by municipal staff.
+                    It will <strong>not</strong> be marked as AI‑verified.
+                  </p>
+                </div>
+              </div>
             )}
 
             <button

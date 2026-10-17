@@ -223,9 +223,16 @@ async def create_report(
                 filename=image.filename or "upload.jpg",
                 content_type=image.content_type or "image/jpeg",
             )
-            if not verified_data.get("can_submit") or verified_data.get("verification_status") != "accepted":
+            v_status = verified_data.get("verification_status", "")
+            can_submit = verified_data.get("can_submit", False)
+
+            # Allow "accepted" and "service_unavailable" (graceful degradation)
+            if not can_submit or v_status not in ("accepted", "service_unavailable"):
                 user_msg = verified_data.get("user_message") or "Image verification failed. Upload a photo clearly showing a municipal issue."
                 raise HTTPException(status_code=400, detail=user_msg)
+
+            if v_status == "service_unavailable":
+                logger.warning(f"AI verification unavailable — accepting report without AI verification")
 
         # 2. Process file storage and metadata extraction
         image_result = await evidence_service.process_upload(image, db)
@@ -263,13 +270,19 @@ async def create_report(
         report.image_height = image_result.get("height")
         report.image_format = image_result.get("format")
 
-    # Attach AI verification outputs
+    # Attach AI verification outputs — only if verification actually succeeded
     if verified_data:
-        report.ai_category = verified_data.get("canonical_category") or verified_data.get("issue_category")
-        report.ai_severity = verified_data.get("severity") if verified_data.get("severity") != "unknown" else observed_severity
-        report.ai_description = verified_data.get("evidence") or verified_data.get("reason")
-        report.ai_confidence = str(verified_data.get("confidence", "0.9"))
-        report.ai_analysis_status = "completed"
+        v_status = verified_data.get("verification_status", "")
+        if v_status == "accepted":
+            report.ai_category = verified_data.get("canonical_category") or verified_data.get("issue_category")
+            report.ai_severity = verified_data.get("severity") if verified_data.get("severity") != "unknown" else observed_severity
+            report.ai_description = verified_data.get("evidence") or verified_data.get("reason")
+            report.ai_confidence = str(verified_data.get("confidence", "0.9"))
+            report.ai_analysis_status = "completed"
+        elif v_status == "service_unavailable":
+            # AI was down — do NOT falsely mark as verified
+            report.ai_analysis_status = "unavailable"
+            report.ai_description = "AI verification was temporarily unavailable at submission time. Flagged for manual review."
 
     db.add(report)
 

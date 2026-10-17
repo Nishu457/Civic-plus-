@@ -102,7 +102,7 @@ MESSAGES = {
     "accepted": "Municipal issue detected. Your image passed preliminary verification.",
     "irrelevant": "Your image does not appear to show a municipal problem. Please upload a photo of a pothole, blocked drain, overflowing garbage or another municipal issue.",
     "unclear": "Your image is not providing enough information to identify a municipal issue. Please upload a clearer photo showing the problem.",
-    "api_failure": "Image verification is temporarily unavailable. Please try again.",
+    "api_failure": "AI image verification is temporarily unavailable. You may still submit your report, but it will be flagged for manual review.",
     "corrupted": "The uploaded file could not be read or is corrupted. Please upload a valid image (JPEG, PNG, or WebP).",
     "too_large": "The image file exceeds the maximum allowed size (10MB).",
     "too_small": "The image dimensions are too small to reliably verify. Please upload a full-resolution photo (min 100x100 px).",
@@ -256,25 +256,27 @@ class ImageVerificationService:
         # Call Gemini Vision Flash-Lite
         ai_resp = await self.gemini.verify_municipal_issue(pil_img)
 
-        # Check for service error or timeout
+        # Check for service error or timeout — allow submission but flag for manual review
         if ai_resp.get("raw_error") or ai_resp.get("image_quality") == "unknown":
+            logger.warning(f"Gemini service error for image SHA-256 {sha256[:10]}...: {ai_resp.get('raw_error', 'unknown error')}")
             result = {
                 "is_municipal_issue": False,
                 "issue_category": "unknown",
                 "canonical_category": "other",
-                "category_label": "Service Unavailable",
+                "category_label": "Verification Unavailable",
                 "confidence": 0.0,
                 "image_quality": "unknown",
                 "severity": "unknown",
                 "evidence": "",
                 "reason": ai_resp.get("reason", "AI service unavailable"),
                 "user_message": MESSAGES["api_failure"],
-                "verification_status": "error",
-                "can_submit": False,
+                "verification_status": "service_unavailable",
+                "can_submit": True,
                 "image_sha256": sha256,
                 "verification_token": "",
                 "verified_at": datetime.now(timezone.utc).isoformat(),
             }
+            # Do NOT cache service errors — allow retry on next attempt
             return result
 
         is_issue = ai_resp.get("is_municipal_issue", False)
