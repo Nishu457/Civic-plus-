@@ -224,15 +224,18 @@ const ReportIssue = () => {
           </div>
           <h2 className="text-2xl font-bold mb-2">Report Submitted</h2>
           <p className="text-gray-500 mb-6">
-            Your verified civic grievance has been recorded and prioritised.
+            {verificationResult?.verification_status === 'accepted'
+              ? 'Your verified civic grievance has been recorded and prioritised.'
+              : 'Your civic grievance has been recorded and queued for manual review.'}
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="text-xs text-gray-400 mb-1">Reference ID</div>
             <div className="text-xl font-mono font-bold">{submitSuccess}</div>
           </div>
           <p className="text-xs text-gray-400 mb-6">
-            This report is stored in CivicPulse AI with verified visual evidence.
-            Use the reference ID to track its resolution status.
+            {verificationResult?.verification_status === 'accepted'
+              ? 'This report is stored in CivicPulse AI with verified visual evidence. Use the reference ID to track its resolution status.'
+              : 'This report is stored in CivicPulse AI and queued for manual inspection by municipal staff. Use the reference ID to track its resolution status.'}
           </p>
           <div className="flex flex-col gap-3">
             <button onClick={() => navigate(`/report/${submitSuccess}`)} className="btn-primary w-full">

@@ -201,6 +201,7 @@ async def create_report(
     verification_service = ImageVerificationService()
     image_result = None
     verified_data = None
+    v_status = ""
 
     if image:
         # 1. Enforce AI verification on uploaded image
@@ -216,6 +217,7 @@ async def create_report(
 
         if is_verified and cached_data:
             verified_data = cached_data
+            v_status = verified_data.get("verification_status", "")
         else:
             # Re-verify image on the server to prevent bypass
             verified_data = await verification_service.verify_image_bytes(
@@ -304,10 +306,10 @@ async def create_report(
         # Update report with evidence results
         report.evidence_risk = assessment.evidence_risk
         report.duplicate_status = assessment.duplicate_status
-        report.ai_analysis_status = assessment.ai_analysis_status
-        if assessment.ai_analysis_status == "completed":
-            # AI results stored in evidence check, update report-level fields
-            pass
+        if v_status == "service_unavailable":
+            report.ai_analysis_status = "unavailable"
+        else:
+            report.ai_analysis_status = assessment.ai_analysis_status
 
         # Run priority scoring
         priority = PriorityService.calculate_priority(report, db)
