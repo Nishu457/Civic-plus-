@@ -125,6 +125,24 @@ export interface HealthResponse {
   services: Record<string, string>;
 }
 
+export interface ImageVerificationResult {
+  is_municipal_issue: boolean;
+  issue_category: string;
+  canonical_category: string;
+  category_label: string;
+  confidence: number;
+  image_quality: string;
+  severity: string;
+  evidence: string;
+  reason: string;
+  user_message: string;
+  verification_status: 'accepted' | 'unclear' | 'rejected_irrelevant' | 'error' | 'corrupted';
+  can_submit: boolean;
+  image_sha256: string;
+  verification_token: string;
+  verified_at: string;
+}
+
 export interface ReportFormData {
   category: string;
   title: string;
@@ -141,6 +159,7 @@ export interface ReportFormData {
   location_consent: boolean;
   submission_consent: boolean;
   image?: File;
+  verification_token?: string;
 }
 
 // Category definitions

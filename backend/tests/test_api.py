@@ -180,7 +180,33 @@ def test_image_upload_and_admin_retrieval():
     img.save(img_byte_arr, format="JPEG")
     img_bytes = img_byte_arr.getvalue()
 
-    # Submit report with image
+    # Pre-authorize this test image in the verification cache
+    import hashlib, time
+    from app.services.image_verification import _VERIFICATION_CACHE, generate_verification_token
+    h = hashlib.sha256(img_bytes).hexdigest()
+    token = generate_verification_token(h, "accepted", "pothole_damaged_road", 0.95)
+    _VERIFICATION_CACHE[h] = {
+        "data": {
+            "is_municipal_issue": True,
+            "issue_category": "pothole",
+            "canonical_category": "pothole_damaged_road",
+            "category_label": "Potholes & Damaged Roads",
+            "confidence": 0.95,
+            "image_quality": "good",
+            "severity": "high",
+            "evidence": "Visible pothole in asphalt",
+            "reason": "Clear road damage",
+            "user_message": "Municipal issue detected. Your image passed preliminary verification.",
+            "verification_status": "accepted",
+            "can_submit": True,
+            "image_sha256": h,
+            "verification_token": token,
+            "verified_at": "2026-10-17T00:00:00Z",
+        },
+        "timestamp": time.time(),
+    }
+
+    # Submit report with image and verification token
     resp = client.post(
         "/api/v1/reports",
         data={
@@ -189,6 +215,7 @@ def test_image_upload_and_admin_retrieval():
             "observed_severity": "high",
             "location_source": "manual",
             "submission_consent": "true",
+            "verification_token": token,
         },
         files={"image": ("test_road.jpg", img_bytes, "image/jpeg")},
     )

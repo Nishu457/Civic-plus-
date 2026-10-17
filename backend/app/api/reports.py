@@ -18,6 +18,7 @@ from app.schemas.report import (
     VALID_SEVERITIES,
     VALID_LOCATION_SOURCES,
     EvidenceAssessment,
+    ImageVerificationResponse,
     ReportListItem,
     ReportListResponse,
     ReportResponse,
@@ -25,6 +26,7 @@ from app.schemas.report import (
     TimelineResponse,
 )
 from app.services.evidence import EvidenceService
+from app.services.image_verification import ImageVerificationService
 from app.services.priority import PriorityService
 
 logger = logging.getLogger(__name__)
@@ -135,6 +137,20 @@ async def get_report(report_id: str, db: Session = Depends(get_db)):
     return _report_to_response(report)
 
 
+@router.post("/reports/verify-image", response_model=ImageVerificationResponse)
+async def verify_image_endpoint(
+    image: UploadFile = File(...),
+):
+    """
+    Dedicated AI image verification endpoint.
+    Analyses uploaded image using Gemini Vision Flash-Lite without saving to database.
+    Does NOT create a report, write to Google Sheets, or send emails.
+    """
+    verification_service = ImageVerificationService()
+    result = await verification_service.verify_upload_file(image)
+    return ImageVerificationResponse(**result)
+
+
 @router.post("/reports", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
 async def create_report(
     category: str = Form(...),
@@ -152,11 +168,12 @@ async def create_report(
     location_consent: bool = Form(False),
     submission_consent: bool = Form(False),
     image: Optional[UploadFile] = File(None),
+    verification_token: Optional[str] = Form(None),
     user: Optional[dict] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
-    Create a new civic issue report with optional image upload.
+    Create a new civic issue report with verified image evidence.
     Accepts multipart/form-data.
     """
     # ── Validate inputs ──────────────────────────────────────
@@ -179,10 +196,38 @@ async def create_report(
         except ValueError:
             raise HTTPException(400, "Invalid observed_at datetime format.")
 
-    # ── Process image ────────────────────────────────────────
+    # ── Process & Verify Image with AI ───────────────────────
     evidence_service = EvidenceService()
+    verification_service = ImageVerificationService()
     image_result = None
+    verified_data = None
+
     if image:
+        # 1. Enforce AI verification on uploaded image
+        image_bytes = await image.read()
+        await image.seek(0)
+        import hashlib
+        img_sha256 = hashlib.sha256(image_bytes).hexdigest()
+
+        is_verified, cached_data = verification_service.is_image_verified_and_accepted(
+            sha256=img_sha256,
+            verification_token=verification_token,
+        )
+
+        if is_verified and cached_data:
+            verified_data = cached_data
+        else:
+            # Re-verify image on the server to prevent bypass
+            verified_data = await verification_service.verify_image_bytes(
+                content=image_bytes,
+                filename=image.filename or "upload.jpg",
+                content_type=image.content_type or "image/jpeg",
+            )
+            if not verified_data.get("can_submit") or verified_data.get("verification_status") != "accepted":
+                user_msg = verified_data.get("user_message") or "Image verification failed. Upload a photo clearly showing a municipal issue."
+                raise HTTPException(status_code=400, detail=user_msg)
+
+        # 2. Process file storage and metadata extraction
         image_result = await evidence_service.process_upload(image, db)
         if image_result.get("error"):
             raise HTTPException(400, image_result["error"])
@@ -208,7 +253,7 @@ async def create_report(
         status="submitted",
     )
 
-    # Attach image data if processed
+    # Attach verified image data
     if image_result and not image_result.get("error"):
         report.image_filename = image_result.get("filename")
         report.image_original_name = image_result.get("original_name")
@@ -217,6 +262,14 @@ async def create_report(
         report.image_width = image_result.get("width")
         report.image_height = image_result.get("height")
         report.image_format = image_result.get("format")
+
+    # Attach AI verification outputs
+    if verified_data:
+        report.ai_category = verified_data.get("canonical_category") or verified_data.get("issue_category")
+        report.ai_severity = verified_data.get("severity") if verified_data.get("severity") != "unknown" else observed_severity
+        report.ai_description = verified_data.get("evidence") or verified_data.get("reason")
+        report.ai_confidence = str(verified_data.get("confidence", "0.9"))
+        report.ai_analysis_status = "completed"
 
     db.add(report)
 

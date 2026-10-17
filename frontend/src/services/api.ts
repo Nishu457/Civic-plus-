@@ -10,6 +10,7 @@ import type {
   PublicConfig,
   HealthResponse,
   ReportFormData,
+  ImageVerificationResult,
 } from '../types';
 
 const api = axios.create({
@@ -120,6 +121,17 @@ export const listReports = (params?: {
 export const getReport = (reportId: string) =>
   api.get<Report>(`/api/v1/reports/${reportId}`).then((r) => r.data);
 
+export const verifyReportImage = async (file: File): Promise<ImageVerificationResult> => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await api.post<ImageVerificationResult>('/api/v1/reports/verify-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  });
+  return response.data;
+};
+
 export const createReport = async (data: ReportFormData): Promise<Report> => {
   const formData = new FormData();
 
@@ -140,6 +152,7 @@ export const createReport = async (data: ReportFormData): Promise<Report> => {
   formData.append('location_consent', String(data.location_consent));
   formData.append('submission_consent', String(data.submission_consent));
   if (data.image) formData.append('image', data.image);
+  if (data.verification_token) formData.append('verification_token', data.verification_token);
 
   const response = await api.post<Report>('/api/v1/reports', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },

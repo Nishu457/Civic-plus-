@@ -9,9 +9,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React 19](https://img.shields.io/badge/React-19.2-61DAFB.svg?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.3-38B2AC.svg?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Google Gemini 2.0 Flash](https://img.shields.io/badge/AI-Gemini%202.0%20Flash-8E75B2.svg?style=flat-square&logo=google-gemini&logoColor=white)](https://ai.google.dev)
-[![Tests Passing](https://img.shields.io/badge/Tests-7%20Passed-success.svg?style=flat-square&logo=pytest&logoColor=white)](backend/tests)
+[![Google Gemini Flash-Lite](https://img.shields.io/badge/AI-Gemini%20Flash--Lite-8E75B2.svg?style=flat-square&logo=google-gemini&logoColor=white)](https://ai.google.dev)
+[![Tests Passing](https://img.shields.io/badge/Tests-21%20Passed-success.svg?style=flat-square&logo=pytest&logoColor=white)](backend/tests)
 [![PWA Ready](https://img.shields.io/badge/PWA-Enabled-5A0FC8.svg?style=flat-square&logo=pwa&logoColor=white)](frontend)
 
 **An evidence-driven, AI-augmented civic grievance reporting and municipal triage ecosystem designed for Indian cities, with specialized geospatial intelligence across Andhra Pradesh.**
@@ -447,15 +446,29 @@ PYTHONPATH=. .venv/bin/pytest tests -v
 ### Test Suite Coverage
 
 ```text
-tests/test_api.py::test_health PASSED                                    [ 14%]
-tests/test_api.py::test_public_config PASSED                             [ 28%]
-tests/test_api.py::test_create_and_fetch_report PASSED                   [ 42%]
-tests/test_api.py::test_report_validation_errors PASSED                  [ 57%]
-tests/test_api.py::test_priority_calculation PASSED                      [ 71%]
-tests/test_api.py::test_admin_dashboard_and_status_update PASSED         [ 85%]
-tests/test_api.py::test_image_upload_and_admin_retrieval PASSED          [100%]
+tests/test_api.py::test_health PASSED                                    [  4%]
+tests/test_api.py::test_public_config PASSED                             [  9%]
+tests/test_api.py::test_create_and_fetch_report PASSED                   [ 14%]
+tests/test_api.py::test_report_validation_errors PASSED                  [ 19%]
+tests/test_api.py::test_priority_calculation PASSED                      [ 23%]
+tests/test_api.py::test_admin_dashboard_and_status_update PASSED         [ 28%]
+tests/test_api.py::test_image_upload_and_admin_retrieval PASSED          [ 33%]
+tests/test_image_verification.py::test_scenario_1_clear_pothole PASSED   [ 38%]
+tests/test_image_verification.py::test_scenario_2_overflowing_garbage PASSED [ 42%]
+tests/test_image_verification.py::test_scenario_3_blocked_drainage PASSED [ 47%]
+tests/test_image_verification.py::test_scenario_4_road_waterlogging PASSED [ 52%]
+tests/test_image_verification.py::test_scenario_5_normal_road PASSED     [ 57%]
+tests/test_image_verification.py::test_scenario_6_selfie PASSED          [ 61%]
+tests/test_image_verification.py::test_scenario_7_food PASSED            [ 66%]
+tests/test_image_verification.py::test_scenario_8_screenshot_document PASSED [ 71%]
+tests/test_image_verification.py::test_scenario_9_blurred_or_dark PASSED [ 76%]
+tests/test_image_verification.py::test_scenario_10_corrupted_file PASSED [ 80%]
+tests/test_image_verification.py::test_scenario_11_api_timeout_or_error PASSED [ 85%]
+tests/test_image_verification.py::test_scenario_12_backend_rejects_unverified_image PASSED [ 90%]
+tests/test_image_verification.py::test_scenario_13_sha256_caching PASSED [ 95%]
+tests/test_image_verification.py::test_verify_image_http_endpoint PASSED [100%]
 
-======================= 7 passed in 18.51s ========================
+======================= 21 passed in 6.88s ========================
 ```
 
 ---
@@ -470,8 +483,9 @@ Explore the interactive Swagger UI at `http://127.0.0.1:8000/docs` or ReDoc at `
 - `GET /health` — Returns status of backend services (database, AI, sheets, email).
 - `GET /api/v1/config/public` — Returns safe public client configurations (no secret keys exposed).
 
-#### 2. Public Reports
-- `POST /api/v1/reports` — Submit a new civic issue with multipart image upload, coordinates, and details.
+#### 2. Public Reports & AI Verification
+- `POST /api/v1/reports/verify-image` — Standalone multimodal AI verification analyzing image evidence with Google Gemini Flash-Lite. Enforces confidence thresholds and returns validation results without persisting records.
+- `POST /api/v1/reports` — Submit a verified civic grievance with multipart image upload, verification token, coordinates, and details.
 - `GET /api/v1/reports` — Query public reports with pagination, category filters, and status sorting.
 - `GET /api/v1/reports/{report_id}` — Fetch comprehensive detail of a specific report.
 - `GET /api/v1/reports/{report_id}/evidence` — Fetch evidence breakdown (EXIF metadata, duplicate status, AI findings, and distance check).

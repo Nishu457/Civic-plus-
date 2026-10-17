@@ -376,3 +376,29 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── AI Scanner Animations ───────────────────────────── */
+@keyframes scanline {
+  0% {
+    top: 0%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0.8;
+  }
+}
+
+.ai-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #2563EB, #60A5FA, #2563EB, transparent);
+  box-shadow: 0 0 15px #2563EB, 0 0 30px #60A5FA;
+  animation: scanline 2.2s ease-in-out infinite alternate;
+  z-index: 10;
+}

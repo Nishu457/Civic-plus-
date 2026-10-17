@@ -34,7 +34,10 @@ class Settings(BaseSettings):
 
     # ── Gemini ───────────────────────────────────────────────
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.5-flash-lite"
+    image_verification_confidence_threshold: float = 0.80
+    image_verification_medium_threshold: float = 0.50
+    image_verification_max_dimension: int = 1600
 
     # ── Google Sheets ────────────────────────────────────────
     google_sheets_service_account_path: str = "./google-sheets-service-account.json"

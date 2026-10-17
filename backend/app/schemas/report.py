@@ -190,7 +190,25 @@ class EvidenceAssessment(BaseModel):
     duplicate_of_report_id: Optional[str] = None
 
 
-# ── Status Schemas ───────────────────────────────────────────
+# ── AI Image Verification Schemas ───────────────────────────
+
+class ImageVerificationResponse(BaseModel):
+    is_municipal_issue: bool
+    issue_category: str
+    canonical_category: str
+    category_label: str
+    confidence: float
+    image_quality: str
+    severity: str
+    evidence: str
+    reason: str
+    user_message: str
+    verification_status: str
+    can_submit: bool
+    image_sha256: str
+    verification_token: str
+    verified_at: str
+
 
 class StatusUpdate(BaseModel):
     status: str
