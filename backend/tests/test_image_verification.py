@@ -322,8 +322,8 @@ async def test_scenario_11_api_timeout_or_error():
         mock_verify.return_value = mock_gemini_response
         result = await service.verify_image_bytes(img_bytes, "error.jpg")
 
-    assert result["verification_status"] == "error"
-    assert result["can_submit"] is False
+    assert result["verification_status"] == "service_unavailable"
+    assert result["can_submit"] is True
     assert result["user_message"] == MESSAGES["api_failure"]
 
 
@@ -437,3 +437,46 @@ def test_verify_image_http_endpoint():
         assert data["can_submit"] is True
         assert data["canonical_category"] == "pothole_damaged_road"
         assert data["user_message"] == MESSAGES["accepted"]
+
+
+# ── Scenario 14: Submission Allowed When Service Unavailable ──
+def test_scenario_14_submission_allowed_when_service_unavailable():
+    """Ensure submitting when AI verification is unavailable succeeds (graceful degradation)."""
+    img_bytes = create_test_image()
+
+    with patch.object(ImageVerificationService, "verify_image_bytes", new_callable=AsyncMock) as mock_verify:
+        mock_verify.return_value = {
+            "is_municipal_issue": False,
+            "issue_category": "unknown",
+            "canonical_category": "other",
+            "category_label": "Unknown",
+            "confidence": 0.0,
+            "image_quality": "unknown",
+            "severity": "unknown",
+            "evidence": "",
+            "reason": "AI verification service temporarily unavailable.",
+            "user_message": MESSAGES["api_failure"],
+            "verification_status": "service_unavailable",
+            "can_submit": True,
+            "image_sha256": "aabbcc112233",
+            "verification_token": "token.12345",
+            "verified_at": "2026-10-17T00:00:00Z",
+        }
+
+        resp = client.post(
+            "/api/v1/reports",
+            data={
+                "category": "pothole_damaged_road",
+                "title": "Road damage during AI outage",
+                "observed_severity": "high",
+                "location_source": "manual",
+                "submission_consent": "true",
+            },
+            files={"image": ("outage.jpg", img_bytes, "image/jpeg")},
+        )
+
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["report_id"] is not None
+        assert data["status"] == "submitted"
+

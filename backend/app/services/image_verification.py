@@ -374,7 +374,7 @@ class ImageVerificationService:
             cached = _VERIFICATION_CACHE[sha256]
             if time.time() - cached["timestamp"] < CACHE_TTL_SECONDS:
                 data = cached["data"]
-                if data.get("verification_status") == "accepted" and data.get("can_submit") is True:
+                if data.get("verification_status") in ("accepted", "service_unavailable") and data.get("can_submit") is True:
                     return True, data
 
         # 2. Check verification token if provided
@@ -388,12 +388,15 @@ class ImageVerificationService:
                         # If cached data is available, verify token against it
                         if sha256 in _VERIFICATION_CACHE:
                             data = _VERIFICATION_CACHE[sha256]["data"]
-                            if verify_token_signature(
-                                token=verification_token,
-                                sha256=sha256,
-                                status=data["verification_status"],
-                                category=data["canonical_category"],
-                                confidence=data["confidence"],
+                            if (
+                                data.get("verification_status") in ("accepted", "service_unavailable")
+                                and verify_token_signature(
+                                    token=verification_token,
+                                    sha256=sha256,
+                                    status=data["verification_status"],
+                                    category=data["canonical_category"],
+                                    confidence=data["confidence"],
+                                )
                             ):
                                 return True, data
             except Exception:
